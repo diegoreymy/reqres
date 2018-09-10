@@ -132,7 +132,12 @@ var funciones = {
 			var flechaNext = '<li class="next"><a href="javascript:;" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
 			var flechaPrev = '<li class="prev"><a href="javascript:;" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
 			for (var i = 1 ; i <= totalPaginas; i++) {
-				i != pagina ? htmlPaginacion += '<li data-id="'+i+'"><a href="javascript:;">'+i+'</a></li>' :  htmlPaginacion += '<li data-id="'+i+'" class="active"><a href="javascript:;">'+i+'</a></li>';
+				i != pagina 
+					? 
+					htmlPaginacion += '<li data-id="'+i+'"><a href="javascript:;">'+i+'</a></li>' 
+					:  
+					htmlPaginacion += '<li data-id="'+i+'" class="active"><a href="javascript:;">'+i+'</a></li>'
+				;
 			}
 			$("#paginacionLista .pagination").append(flechaPrev,htmlPaginacion,flechaNext);		   	
 			respuesta.data.map(function(usuario){
