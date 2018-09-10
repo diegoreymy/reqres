@@ -1,5 +1,6 @@
 var funciones = {
 	inicio: function() {
+		usuarios = [];
 		funciones.sesion.checkLogin();
 		var url = window.location.href;
 		if(url.indexOf("login") > -1){
@@ -9,6 +10,7 @@ var funciones = {
 		}else if (url.indexOf("index") > -1){
 			funciones.obtenerUsuarios.porPagina(1, funciones.obtenerUsuarios.listar);
 			funciones.obtenerUsuarios.buscar();
+			funciones.obtenerUsuarios.ordenar();
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
 		}
 	},
@@ -77,13 +79,14 @@ var funciones = {
 		},
 		checkLogin : function(){
 			funciones.sesion.loginExpirado() == true && window.location.href.indexOf("login") === -1 
-			? window.location = "login.html" 
+			? funciones.sesion.cerrarSesion() 
 			: console.log("");
 		},
 		cerrarSesion : function(){
 			localStorage.removeItem('token');
 			localStorage.removeItem('expiracionToken');
-			window.location = "index.html";
+			localStorage.removeItem('usuarios');
+			window.location = "login.html";
 		}
 	},
 	obtenerUsuarios: {
@@ -111,6 +114,17 @@ var funciones = {
 				console.log("Error en el servicio al consultar el usuario");
 			})
 		},
+		obtenerTodos : function(respuesta){
+			respuesta.data.map(function(usuario){
+				usuarios.push(usuario);
+			})
+			localStorage.setItem("usuarios", JSON.stringify(usuarios)); 
+		},
+		listarTodos : function(totalPaginas){
+			for (var i = 1 ; i <= totalPaginas; i++) {
+				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.obtenerTodos)
+			}
+		},
 		listar : function(respuesta){
 			var pagina = respuesta.page;
 			var totalPaginas = respuesta.total_pages;
@@ -126,7 +140,7 @@ var funciones = {
 									'<td class="id">' + usuario.id + '</td>' +
 									'<td class="nombre">' + usuario.first_name + '</td>' +
 									'<td class="apellido">' + usuario.last_name + '</td>' +
-									'<td> <button type="button" class="btnDetalles btn btn-warning glyphicon glyphicon-eye-open" data-toggle="modal" data-target="#modalDetalles"></button> </td>' +
+									'<td class="detalles"> <button type="button" class="btnDetalles btn btn-warning glyphicon glyphicon-eye-open" data-toggle="modal" data-target="#modalDetalles"></button> </td>' +
 									'</tr>';
 				$("#lista tbody").append(elemUsuario);
 			})
@@ -181,6 +195,26 @@ var funciones = {
 				$("#lista tbody tr").filter(function(){
 					$(this).toggle(($(this).text().toLowerCase().indexOf(texto) > -1));
 				})
+			})
+		},
+		ordenar : function(){
+
+			$("#lista tr.info th").not(':last').on("click", function(){
+				var columna = this;
+				$("#lista tr.info th").each(function(posicion, valor){
+					columna == valor ? columna = posicion : false ;	
+				})
+				var elementos = [];
+				$("#lista tbody tr td:nth-child("+(columna+1)+")").each(function(){ 
+					elementos.push($(this).text()) 
+				})
+				elementos.sort();
+				function orden(elemento){
+					$("#lista tbody tr").each(function(){
+						$(this).text().indexOf(elemento) > -1 ? $("#lista tbody").append(this) : false;
+					})
+				}
+				elementos.filter(orden)
 			})
 		}
 	}
