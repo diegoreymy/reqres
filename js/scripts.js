@@ -7,6 +7,9 @@ var funciones = {
 			$("#password").on("change", funciones.formulario.validarPassword);
 			$("#btn-enviar").on("click", funciones.formulario.validarTodo);
 		}else if (url.indexOf("index") > -1){
+			funciones.obtenerUsuarios.cantidadPaginas(funciones.obtenerUsuarios.almacenarPaginas);
+			setTimeout(function(){funciones.obtenerUsuarios.listar()},1000)
+			funciones.obtenerUsuarios.buscar();
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
 		}
 	},
@@ -112,18 +115,18 @@ var funciones = {
 				console.log("Error en el servicio al consultar los usuarios");
 			})
 		},
-		obtenerTodos : function(respuesta){
+		almacenarUsuarios : function(respuesta){
 			respuesta.data.map(function(usuario){
 				usuarios.push(usuario);
 			})
+			usuarios.sort(function(a,b){ return a.id-b.id })
 			localStorage.setItem("usuarios", JSON.stringify(usuarios));
 		},
-		listarTodos : function(totalPaginas){
+		almacenarPaginas : function(totalPaginas){
 			usuarios = [];
 			for (var i = 1 ; i <= totalPaginas; i++) {
-				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.obtenerTodos)
+				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.almacenarUsuarios)
 			}
-			return true;	
 		},
 		listar : function(){
 			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
@@ -135,9 +138,37 @@ var funciones = {
 									'<td class="detalles"> <button type="button" class="btnDetalles btn btn-warning glyphicon glyphicon-eye-open" data-toggle="modal" data-target="#modalDetalles"></button> </td>' +
 									'</tr>';
 				$("#lista tbody").append(elemUsuario);
+				funciones.obtenerUsuarios.clickDetalles();
+			})
+		},
+		buscar : function(){
+			$("#inputBuscar").on("keyup", function(){
+				var texto = $(this).val().toLowerCase();
+				$("#lista tbody tr").filter(function(){
+					$(this).toggle(($(this).text().toLowerCase().indexOf(texto) > -1));
+				})
+			})
+		},
+		obtenerDetalles : function(id){
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+			var usuario = listUsuarios[id];
+			var detalles = '<div class="row detalles">' + 
+						   '<div class="col-sm-12 col-md-12">'+
+						   '<div class="thumbnail text-center">' + 
+						   '<img src="'+usuario.avatar+'" alt="'+usuario.first_name +" "+usuario.last_name+'">'+
+						   '<div class="caption">'+
+						   '<h3>'+usuario.first_name +" "+usuario.last_name+'</h3>'+
+						   '<p>ID del usuario: '+ usuario.id +'</p>'+
+						   '</div></div></div></div>';
+
+			$("#modalDetalles .modal-body").append(detalles);
+		},
+		clickDetalles : function(){
+			$(".btnDetalles").on("click", function(){
+				$("#modalDetalles .modal-body .detalles").remove();
+				var id = $(this).closest("tr").attr("id")
+				funciones.obtenerUsuarios.obtenerDetalles(id-1);			
 			})
 		}
 	}
 }
-
-
