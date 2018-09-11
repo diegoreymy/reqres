@@ -1,6 +1,5 @@
 var funciones = {
 	inicio: function() {
-		usuarios = [];
 		funciones.sesion.checkLogin();
 		var url = window.location.href;
 		if(url.indexOf("login") > -1){
@@ -8,9 +7,6 @@ var funciones = {
 			$("#password").on("change", funciones.formulario.validarPassword);
 			$("#btn-enviar").on("click", funciones.formulario.validarTodo);
 		}else if (url.indexOf("index") > -1){
-			funciones.obtenerUsuarios.porPagina(1, funciones.obtenerUsuarios.listar);
-			funciones.obtenerUsuarios.buscar();
-			funciones.obtenerUsuarios.ordenar();
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
 		}
 	},
@@ -90,6 +86,20 @@ var funciones = {
 		}
 	},
 	obtenerUsuarios: {
+		cantidadPaginas : function (callback){
+			opciones = {
+				"method": "GET",
+				"async": true,
+				"url" : "https://reqres.in/api/users"
+			}
+			$.ajax(opciones)
+			.done(function(respuesta){
+				callback(respuesta.total_pages)
+			})
+			.fail(function(){
+				console.log("Error en el servicio al consultar los usuarios");
+			})
+		},
 		porPagina : function (pagina, callback){
 			opciones = {
 				"method": "GET",
@@ -102,45 +112,22 @@ var funciones = {
 				console.log("Error en el servicio al consultar los usuarios");
 			})
 		},
-		porId : function(id, callback){
-			opcions = {
-				"method" : "GET",
-				"async" : true,
-				"url" : "https://reqres.in/api/users/"+id
-			}
-			$.ajax(opcions)
-			.done(callback)
-			.fail(function(){
-				console.log("Error en el servicio al consultar el usuario");
-			})
-		},
 		obtenerTodos : function(respuesta){
 			respuesta.data.map(function(usuario){
 				usuarios.push(usuario);
 			})
-			localStorage.setItem("usuarios", JSON.stringify(usuarios)); 
+			localStorage.setItem("usuarios", JSON.stringify(usuarios));
 		},
 		listarTodos : function(totalPaginas){
+			usuarios = [];
 			for (var i = 1 ; i <= totalPaginas; i++) {
 				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.obtenerTodos)
 			}
+			return true;	
 		},
-		listar : function(respuesta){
-			var pagina = respuesta.page;
-			var totalPaginas = respuesta.total_pages;
-			var htmlPaginacion = "";
-			var flechaNext = '<li class="next"><a href="javascript:;" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
-			var flechaPrev = '<li class="prev"><a href="javascript:;" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
-			for (var i = 1 ; i <= totalPaginas; i++) {
-				i != pagina 
-					? 
-					htmlPaginacion += '<li data-id="'+i+'"><a href="javascript:;">'+i+'</a></li>' 
-					:  
-					htmlPaginacion += '<li data-id="'+i+'" class="active"><a href="javascript:;">'+i+'</a></li>'
-				;
-			}
-			$("#paginacionLista .pagination").append(flechaPrev,htmlPaginacion,flechaNext);		   	
-			respuesta.data.map(function(usuario){
+		listar : function(){
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+			listUsuarios.map(function(usuario){
 				var elemUsuario = 	'<tr id="'+usuario.id+'">' +
 									'<td class="id">' + usuario.id + '</td>' +
 									'<td class="nombre">' + usuario.first_name + '</td>' +
@@ -148,78 +135,6 @@ var funciones = {
 									'<td class="detalles"> <button type="button" class="btnDetalles btn btn-warning glyphicon glyphicon-eye-open" data-toggle="modal" data-target="#modalDetalles"></button> </td>' +
 									'</tr>';
 				$("#lista tbody").append(elemUsuario);
-			})
-			funciones.obtenerUsuarios.paginacion(pagina, totalPaginas);
-
-			$(".btnDetalles").on("click", function(){
-				$("#modalDetalles .modal-body .detalles").remove();
-				var id = $(this).closest("tr").attr('id'); 
-				funciones.obtenerUsuarios.porId(id,funciones.obtenerUsuarios.detalles)
-			})
-		},
-		paginacion : function(pagina, totalPaginas){
-			var elemRemove = "#paginacionLista .pagination li[data-id], #paginacionLista .pagination li.next, #paginacionLista .pagination li.prev, #lista tbody tr";
-			$("#paginacionLista li[data-id]").on("click", function(){
-				var pagina = $(this).attr("data-id");
-				$(elemRemove).remove();
-				funciones.obtenerUsuarios.porPagina(pagina, funciones.obtenerUsuarios.listar);
-			});
-			pagina == 1 
-			? $(".pagination li.prev").addClass("disabled").click(function(e) { e.preventDefault() })
-			: $(".pagination li.prev").removeClass("disabled").unbind('click')
-			pagina == totalPaginas 
-			? $(".pagination li.next").addClass("disabled").click(function(e) { e.preventDefault() })
-			: $(".pagination li.next").removeClass("disabled").unbind('click')
-
-			$(".pagination li.next:not(.disabled)").on("click", function(){
-				$(elemRemove).remove();
-				funciones.obtenerUsuarios.porPagina(pagina+1, funciones.obtenerUsuarios.listar);
-			});
-			$(".pagination li.prev:not(.disabled)").on("click", function(){
-				$(elemRemove).remove();
-				funciones.obtenerUsuarios.porPagina(pagina-1, funciones.obtenerUsuarios.listar);
-			});
-
-		},
-		detalles : function(respuesta){
-			var usuario = respuesta.data;
-			var detalles = '<div class="row detalles">' + 
-						   '<div class="col-sm-12 col-md-12">'+
-						   '<div class="thumbnail text-center">' + 
-						   '<img src="'+usuario.avatar+'" alt="'+usuario.first_name +" "+usuario.last_name+'">'+
-						   '<div class="caption">'+
-						   '<h3>'+usuario.first_name +" "+usuario.last_name+'</h3>'+
-						   '<p>ID del usuario: '+ usuario.id +'</p>'+
-						   '</div></div></div></div>';
-
-			$("#modalDetalles .modal-body").append(detalles);
-		},
-		buscar : function(){
-			$("#inputBuscar").on("keyup", function(){
-				var texto = $(this).val().toLowerCase();
-				$("#lista tbody tr").filter(function(){
-					$(this).toggle(($(this).text().toLowerCase().indexOf(texto) > -1));
-				})
-			})
-		},
-		ordenar : function(){
-
-			$("#lista tr.info th").not(':last').on("click", function(){
-				var columna = this;
-				$("#lista tr.info th").each(function(posicion, valor){
-					columna == valor ? columna = posicion : false ;	
-				})
-				var elementos = [];
-				$("#lista tbody tr td:nth-child("+(columna+1)+")").each(function(){ 
-					elementos.push($(this).text()) 
-				})
-				elementos.sort();
-				function orden(elemento){
-					$("#lista tbody tr").each(function(){
-						$(this).text().indexOf(elemento) > -1 ? $("#lista tbody").append(this) : false;
-					})
-				}
-				elementos.filter(orden)
 			})
 		}
 	}
