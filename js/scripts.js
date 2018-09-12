@@ -8,8 +8,15 @@ var funciones = {
 			$("#btn-enviar").on("click", funciones.formulario.validarTodo);
 		}else if (url.indexOf("index") > -1){
 			funciones.obtenerUsuarios.cantidadPaginas(funciones.obtenerUsuarios.almacenarPaginas);
-			setTimeout(function(){funciones.obtenerUsuarios.listar()},1000)
-			funciones.obtenerUsuarios.buscar();
+			setTimeout(function(){
+				funciones.obtenerUsuarios.paginacion(12)
+				funciones.obtenerUsuarios.usuariosPorPagina();
+				funciones.obtenerUsuarios.listaUsuariosPorPagina();
+				funciones.obtenerUsuarios.buscar();
+			},1000);
+			$('.pagination').on('DOMSubtreeModified', function(e) {
+				funciones.obtenerUsuarios.cancelarClickPaginacion();
+			})
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
 		}
 	},
@@ -85,6 +92,7 @@ var funciones = {
 			localStorage.removeItem('token');
 			localStorage.removeItem('expiracionToken');
 			localStorage.removeItem('usuarios');
+			localStorage.removeItem('paginas');
 			window.location = "login.html";
 		}
 	},
@@ -128,8 +136,8 @@ var funciones = {
 				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.almacenarUsuarios)
 			}
 		},
-		listar : function(){
-			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+		listar : function(listUsuarios){
+			$("#lista tbody tr").remove();
 			listUsuarios.map(function(usuario){
 				var elemUsuario = 	'<tr id="'+usuario.id+'">' +
 									'<td class="id">' + usuario.id + '</td>' +
@@ -150,6 +158,7 @@ var funciones = {
 			})
 		},
 		obtenerDetalles : function(id){
+			$("#modalDetalles .modal-body tr").remove();
 			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
 			var usuario = listUsuarios[id];
 			var detalles = '<div class="row detalles">' + 
@@ -169,6 +178,89 @@ var funciones = {
 				var id = $(this).closest("tr").attr("id")
 				funciones.obtenerUsuarios.obtenerDetalles(id-1);			
 			})
-		}
+		},
+		paginacion : function(elementosPorPagina){
+			var elementosPorPagina = parseInt(elementosPorPagina);
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+			var usuarios = listUsuarios;
+			var cElementosPorPagina = [];
+			var cantidadPaginas = Math.ceil(listUsuarios.length/elementosPorPagina);
+			var flechaNext = '<li class="next disabled"><a href="javascript:;" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
+			var flechaPrev = '<li class="prev disabled"><a href="javascript:;" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
+			var htmlPaginacion = "";
+			var paginaActual = 1;
+			var cont = 0;
+			for (var i = 0; i <= cantidadPaginas-1; i++) {
+				cElementosPorPagina.push(usuarios.slice(cont,cont+elementosPorPagina));
+				cont = cont + elementosPorPagina;
+				(i+1) != paginaActual 
+					? 
+					htmlPaginacion += '<li data-id="'+(i+1)+'"><a href="javascript:;">'+(i+1)+'</a></li>' 
+					:  
+					htmlPaginacion += '<li data-id="'+(i+1)+'" class="active"><a href="javascript:;">'+(i+1)+'</a></li>'
+				;
+			}
+			localStorage.setItem("paginas", JSON.stringify(cElementosPorPagina));
+			$("#paginacionLista .pagination").append(flechaPrev,htmlPaginacion,flechaNext);	
+			funciones.obtenerUsuarios.listar(cElementosPorPagina[0]);
+			var paginas = JSON.parse(localStorage.getItem("paginas"))
+
+			$("#paginacionLista li[data-id]").on("click", function(){
+				var pagina = $(this).attr("data-id");
+				$("#paginacionLista .pagination li.active").removeClass("active");
+				$("#paginacionLista .pagination li").eq(pagina).addClass("active");
+				funciones.obtenerUsuarios.listar(paginas[pagina-1]);
+			});
+
+			$(".pagination li.next").on("click", function(){
+				if($(".pagination li.next").hasClass("disabled") == false ){
+					var pagina = parseInt($("#paginacionLista .pagination li.active").next().text());
+					$("#paginacionLista .pagination li.active").removeClass("active");
+					$("#paginacionLista .pagination li").eq(pagina).addClass("active");
+					funciones.obtenerUsuarios.listar(paginas[pagina-1]);
+				}
+			});
+
+			$(".pagination li.prev").on("click", function(){
+				if($(".pagination li.prev").hasClass("disabled") == false ){
+					var pagina = parseInt($("#paginacionLista .pagination li.active").prev().text());
+					$("#paginacionLista .pagination li.active").removeClass("active");
+					$("#paginacionLista .pagination li").eq(pagina).addClass("active");
+					funciones.obtenerUsuarios.listar(paginas[pagina-1]);
+				}
+			});
+		},
+		usuariosPorPagina : function(){
+			var elemRemove = '#paginacionLista .pagination li[data-id], #paginacionLista .pagination li.next, #paginacionLista .pagination li.prev, #lista tbody tr';
+			$("#usuariosPorPagina").on("change", function(){
+				$(elemRemove).remove();
+				var num = $(this).val();
+				funciones.obtenerUsuarios.paginacion(num);
+			})
+		},
+		listaUsuariosPorPagina : function(){
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+			for (var i = listUsuarios.length; i >= 1; i--) {
+				$("#usuariosPorPagina").append("<option>"+i+"</option>")
+			}
+		},
+		cancelarClickPaginacion : function(){
+			var paginaActual = parseInt($("#paginacionLista .pagination li.active").text());
+			var totalPaginas = parseInt($("#paginacionLista .pagination li[data-id]").last().attr("data-id"));
+			console.log("pagina actual: "+paginaActual+" ; "+"cantidad de paginas: "+totalPaginas);
+			if (paginaActual === 1){
+				$(".pagination li.prev").addClass("disabled")
+			}else{
+				$(".pagination li.prev").removeClass("disabled")
+			}
+			if(paginaActual === totalPaginas ){
+				$(".pagination li.next").addClass("disabled")
+			}else{
+				$(".pagination li.next").removeClass("disabled")
+			}
+		},
 	}
 }
+
+
+

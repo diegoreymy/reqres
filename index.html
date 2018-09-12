@@ -46,13 +46,20 @@
 		        </div>
 		        <div class="row players-section">
 	            	<nav aria-label="Paginacion" id="paginacionLista">
-					  <ul class="pagination">
-					  </ul>
-					  <div class="col-sm-4 pull-right inputBuscar">
-						<input class="form-control" type="text" name="inputBuscar" id="inputBuscar" placeholder="Buscar usuario">
-					</div>
+						<ul class="pagination">
+						</ul>
 					</nav>
-					
+					<div class="row">
+						<div class="col-sm-4 inputBuscar">
+							<label for="inputBuscar">Buscar usuarios: </label>
+							<input class="form-control" type="text" name="inputBuscar" id="inputBuscar" placeholder="Buscar usuario">
+						</div>
+						<div class="form-group col-sm-3 pull-right">
+							<label for="usuariosPorPagina">Usuarios por página: </label>
+							<select class="form-control" id="usuariosPorPagina">
+							</select>
+						</div>
+					</div>
 		          	<table id="lista" class="table table-hover table-bordered table-striped">
 		            <thead>
 		              <tr class="info">
