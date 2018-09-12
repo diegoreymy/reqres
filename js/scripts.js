@@ -14,7 +14,7 @@ var funciones = {
 				funciones.obtenerUsuarios.listaUsuariosPorPagina();
 				funciones.obtenerUsuarios.buscar();
 			},1000);
-			$('.pagination').on('DOMSubtreeModified', function(e) {
+			$('.pagination, #usuariosPorPagina').on('click', function() {
 				funciones.obtenerUsuarios.cancelarClickPaginacion();
 			})
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
@@ -247,7 +247,6 @@ var funciones = {
 		cancelarClickPaginacion : function(){
 			var paginaActual = parseInt($("#paginacionLista .pagination li.active").text());
 			var totalPaginas = parseInt($("#paginacionLista .pagination li[data-id]").last().attr("data-id"));
-			console.log("pagina actual: "+paginaActual+" ; "+"cantidad de paginas: "+totalPaginas);
 			if (paginaActual === 1){
 				$(".pagination li.prev").addClass("disabled")
 			}else{
