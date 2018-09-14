@@ -11,6 +11,7 @@ var funciones = {
 				.then(function(respuesta){
 					funciones.obtenerUsuarios.almacenarPaginas(respuesta)
 				})
+
 			$('.pagination, #usuariosPorPagina').on('click', function() {
 				funciones.obtenerUsuarios.cancelarClickPaginacion();
 			})
@@ -111,19 +112,19 @@ var funciones = {
 				}
 				$.ajax(opciones)
 				.done(function(respuesta){
-					cantidadPaginas(respuesta.total_pages)
+					cantidadPaginas(respuesta.total)
 				})
 				.fail(function(){
 					console.log("Error en el servicio al consultar los usuarios");
 				})
 			})
 		},
-		porPagina : function (pagina){
+		porPagina : function (totalUsuarios){
 			return new Promise(function(usuarios){
 				opciones= 	{
 								"method": "GET",
 								"async": true,
-								"url" : "https://reqres.in/api/users?page="+pagina	
+								"url" : "https://reqres.in/api/users?per_page="+totalUsuarios	
 							}
 				$.ajax(opciones)
 				.done(usuarios)
@@ -132,45 +133,21 @@ var funciones = {
 				})
 			})
 		},
-		almacenarPaginas : function(totalPaginas){
+		almacenarPaginas : function(totalUsuarios){
 			usuarios = [];
-			funciones.obtenerUsuarios.porPagina(1).then(function(respuesta){ 
-				respuesta.data.map(function(usuario){
-					usuarios.push(usuario);
-				})
-				localStorage.setItem("usuarios", JSON.stringify(usuarios));
-				console.log("Llamando al servicio: pagina "+respuesta.page)
-
-				funciones.obtenerUsuarios.porPagina(2).then(function(respuesta){ 
+			funciones.obtenerUsuarios.porPagina(totalUsuarios)
+				.then(function(respuesta){ 
 					respuesta.data.map(function(usuario){
 						usuarios.push(usuario);
 					})
 					localStorage.setItem("usuarios", JSON.stringify(usuarios));
-					console.log("Llamando al servicio: pagina "+respuesta.page) 
-
-					funciones.obtenerUsuarios.porPagina(3).then(function(respuesta){ 
-						respuesta.data.map(function(usuario){
-							usuarios.push(usuario);
-						})
-						localStorage.setItem("usuarios", JSON.stringify(usuarios));
-						console.log("Llamando al servicio: pagina "+respuesta.page)
-
-						funciones.obtenerUsuarios.porPagina(4).then(function(respuesta){ 
-							respuesta.data.map(function(usuario){
-								usuarios.push(usuario);
-							})
-							localStorage.setItem("usuarios", JSON.stringify(usuarios));
-							console.log("Llamando al servicio: pagina "+respuesta.page) 
-
-							console.log("esto es lo ultimo")
-							funciones.obtenerUsuarios.paginacion(12)
-							funciones.obtenerUsuarios.usuariosPorPagina();
-							funciones.obtenerUsuarios.listaUsuariosPorPagina();
-							funciones.obtenerUsuarios.buscar();
-						})
-					})
-				})	
-			})
+				})
+				.then(function(){
+					funciones.obtenerUsuarios.paginacion(12)
+					funciones.obtenerUsuarios.usuariosPorPagina();
+					funciones.obtenerUsuarios.listaUsuariosPorPagina();
+					funciones.obtenerUsuarios.buscar();
+				})
 		},
 		listar : function(listUsuarios){
 			$("#lista tbody tr").remove();
