@@ -99,6 +99,6 @@ nav .inputBuscar{
     margin: 20px 0px;
     padding: 0;
 }
-#lista tr.info th:not(:last-child){
+#lista tr.info th i{
     cursor: pointer;
 }

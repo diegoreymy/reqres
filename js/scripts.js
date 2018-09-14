@@ -7,15 +7,20 @@ var funciones = {
 			$("#password").on("change", funciones.formulario.validarPassword);
 			$("#btn-enviar").on("click", funciones.formulario.validarTodo);
 		}else if (url.indexOf("index") > -1){
-			funciones.obtenerUsuarios.cantidadPaginas(funciones.obtenerUsuarios.almacenarPaginas);
-			setTimeout(function(){
-				funciones.obtenerUsuarios.paginacion(12)
-				funciones.obtenerUsuarios.usuariosPorPagina();
-				funciones.obtenerUsuarios.listaUsuariosPorPagina();
-				funciones.obtenerUsuarios.buscar();
-			},1000);
+			funciones.obtenerUsuarios.cantidadPaginas()
+				.then(function(respuesta){
+					funciones.obtenerUsuarios.almacenarPaginas(respuesta)
+				})
 			$('.pagination, #usuariosPorPagina').on('click', function() {
 				funciones.obtenerUsuarios.cancelarClickPaginacion();
+			})
+			$('tr.info i.glyphicon-chevron-up').on("click", function(){
+				var parametro = $(this).closest("th").attr("data-parametro");
+				funciones.obtenerUsuarios.ordenarUsuarios(parametro,"ascendente");
+			})
+			$('tr.info i.glyphicon-chevron-down').on("click", function(){
+				var parametro = $(this).closest("th").attr("data-parametro");
+				funciones.obtenerUsuarios.ordenarUsuarios(parametro,"descendente");
 			})
 			$("#logout").on("click", funciones.sesion.cerrarSesion);
 		}
@@ -97,44 +102,75 @@ var funciones = {
 		}
 	},
 	obtenerUsuarios: {
-		cantidadPaginas : function (callback){
-			opciones = {
-				"method": "GET",
-				"async": true,
-				"url" : "https://reqres.in/api/users"
-			}
-			$.ajax(opciones)
-			.done(function(respuesta){
-				callback(respuesta.total_pages)
-			})
-			.fail(function(){
-				console.log("Error en el servicio al consultar los usuarios");
-			})
-		},
-		porPagina : function (pagina, callback){
-			opciones = {
-				"method": "GET",
-				"async": true,
-				"url" : "https://reqres.in/api/users?page="+pagina
-			}
-			$.ajax(opciones)
-			.done(callback)
-			.fail(function(){
-				console.log("Error en el servicio al consultar los usuarios");
+		cantidadPaginas : function (){
+			return new Promise(function(cantidadPaginas){
+				opciones = {
+					"method": "GET",
+					"async": true,
+					"url" : "https://reqres.in/api/users"
+				}
+				$.ajax(opciones)
+				.done(function(respuesta){
+					cantidadPaginas(respuesta.total_pages)
+				})
+				.fail(function(){
+					console.log("Error en el servicio al consultar los usuarios");
+				})
 			})
 		},
-		almacenarUsuarios : function(respuesta){
-			respuesta.data.map(function(usuario){
-				usuarios.push(usuario);
+		porPagina : function (pagina){
+			return new Promise(function(usuarios){
+				opciones= 	{
+								"method": "GET",
+								"async": true,
+								"url" : "https://reqres.in/api/users?page="+pagina	
+							}
+				$.ajax(opciones)
+				.done(usuarios)
+				.fail(function(){
+					console.log("Error en el servicio al consultar los usuarios");
+				})
 			})
-			usuarios.sort(function(a,b){ return a.id-b.id })
-			localStorage.setItem("usuarios", JSON.stringify(usuarios));
 		},
 		almacenarPaginas : function(totalPaginas){
 			usuarios = [];
-			for (var i = 1 ; i <= totalPaginas; i++) {
-				funciones.obtenerUsuarios.porPagina(i, funciones.obtenerUsuarios.almacenarUsuarios)
-			}
+			funciones.obtenerUsuarios.porPagina(1).then(function(respuesta){ 
+				respuesta.data.map(function(usuario){
+					usuarios.push(usuario);
+				})
+				localStorage.setItem("usuarios", JSON.stringify(usuarios));
+				console.log("Llamando al servicio: pagina "+respuesta.page)
+
+				funciones.obtenerUsuarios.porPagina(2).then(function(respuesta){ 
+					respuesta.data.map(function(usuario){
+						usuarios.push(usuario);
+					})
+					localStorage.setItem("usuarios", JSON.stringify(usuarios));
+					console.log("Llamando al servicio: pagina "+respuesta.page) 
+
+					funciones.obtenerUsuarios.porPagina(3).then(function(respuesta){ 
+						respuesta.data.map(function(usuario){
+							usuarios.push(usuario);
+						})
+						localStorage.setItem("usuarios", JSON.stringify(usuarios));
+						console.log("Llamando al servicio: pagina "+respuesta.page)
+
+						funciones.obtenerUsuarios.porPagina(4).then(function(respuesta){ 
+							respuesta.data.map(function(usuario){
+								usuarios.push(usuario);
+							})
+							localStorage.setItem("usuarios", JSON.stringify(usuarios));
+							console.log("Llamando al servicio: pagina "+respuesta.page) 
+
+							console.log("esto es lo ultimo")
+							funciones.obtenerUsuarios.paginacion(12)
+							funciones.obtenerUsuarios.usuariosPorPagina();
+							funciones.obtenerUsuarios.listaUsuariosPorPagina();
+							funciones.obtenerUsuarios.buscar();
+						})
+					})
+				})	
+			})
 		},
 		listar : function(listUsuarios){
 			$("#lista tbody tr").remove();
@@ -150,17 +186,35 @@ var funciones = {
 			})
 		},
 		buscar : function(){
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios")) 
+			var busqueda = [];
 			$("#inputBuscar").on("keyup", function(){
-				var texto = $(this).val().toLowerCase();
-				$("#lista tbody tr").filter(function(){
-					$(this).toggle(($(this).text().toLowerCase().indexOf(texto) > -1));
-				})
+				var texto = $(this).val().toString().toLowerCase();
+				busqueda = [];
+				listUsuarios.map(function(usuario, posicion){ 
+					if(texto !== ""){
+						var cadena  = (usuario.id+" "+usuario.first_name +" "+ usuario.last_name ).toString().toLowerCase();
+						if( cadena.indexOf(texto) > -1 ){
+							busqueda.push(listUsuarios[posicion]) 
+							funciones.obtenerUsuarios.listar(busqueda);
+						}
+						if(busqueda.length === 0){
+							funciones.obtenerUsuarios.listar(busqueda);
+						}  
+					}
+					if(texto === ""){
+						var paginas = JSON.parse(localStorage.getItem("paginas"))
+						var paginaActual =  parseInt($("#paginacionLista .pagination li.active").text());
+						funciones.obtenerUsuarios.listar(paginas[paginaActual-1]);
+					}
+				})			
 			})
 		},
 		obtenerDetalles : function(id){
 			$("#modalDetalles .modal-body tr").remove();
 			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
-			var usuario = listUsuarios[id];
+			var usuario = listUsuarios.filter(function(usuario){ return usuario.id == id })
+			usuario = usuario[0];
 			var detalles = '<div class="row detalles">' + 
 						   '<div class="col-sm-12 col-md-12">'+
 						   '<div class="thumbnail text-center">' + 
@@ -176,7 +230,7 @@ var funciones = {
 			$(".btnDetalles").on("click", function(){
 				$("#modalDetalles .modal-body .detalles").remove();
 				var id = $(this).closest("tr").attr("id")
-				funciones.obtenerUsuarios.obtenerDetalles(id-1);			
+				funciones.obtenerUsuarios.obtenerDetalles(id);			
 			})
 		},
 		paginacion : function(elementosPorPagina){
@@ -247,19 +301,59 @@ var funciones = {
 		cancelarClickPaginacion : function(){
 			var paginaActual = parseInt($("#paginacionLista .pagination li.active").text());
 			var totalPaginas = parseInt($("#paginacionLista .pagination li[data-id]").last().attr("data-id"));
-			if (paginaActual === 1){
-				$(".pagination li.prev").addClass("disabled")
-			}else{
-				$(".pagination li.prev").removeClass("disabled")
-			}
-			if(paginaActual === totalPaginas ){
-				$(".pagination li.next").addClass("disabled")
-			}else{
-				$(".pagination li.next").removeClass("disabled")
-			}
+			paginaActual === 1 
+				? $(".pagination li.prev").addClass("disabled")
+				: $(".pagination li.prev").removeClass("disabled")
+			paginaActual === totalPaginas
+				? $(".pagination li.next").addClass("disabled")
+				: $(".pagination li.next").removeClass("disabled")
 		},
+		ordenarUsuarios : function(parametro, orden){
+			var listUsuarios = JSON.parse(localStorage.getItem("usuarios"))
+
+			switch (parametro) {
+
+				case "nombre":
+					listUsuarios.sort(function(a,b){ 
+						if (orden == "descendente"){
+							return (a.first_name >= b.first_name ) ? 1 : -1 
+						}
+						if (orden == "ascendente"){
+							return (a.first_name <= b.first_name ) ? 1 : -1 
+						}
+					})
+					break;
+				case "apellido":
+					listUsuarios.sort(function(a,b){ 
+						if (orden == "descendente"){
+							return (a.last_name >= b.last_name ) ? 1 : -1
+						}
+						if (orden == "ascendente"){ 
+							return (a.last_name <= b.last_name ) ? 1 : -1
+						}
+					})
+					break;
+				case "id":
+					listUsuarios.sort(function(a,b){ 
+						if (orden == "descendente"){
+							return a.id - b.id  
+						}
+						if (orden == "ascendente"){
+							return b.id - a.id  
+						}
+					})
+					break;
+			}
+			localStorage.setItem("usuarios", JSON.stringify(listUsuarios));
+			funciones.obtenerUsuarios.listar(listUsuarios);
+			var pagActiva = $("#paginacionLista .pagination li.active").text();
+			var elemBorrar = '#paginacionLista .pagination li[data-id], #paginacionLista .pagination li.next, #paginacionLista .pagination li.prev, #lista tbody tr';
+			var usuariosPorPagina = $("#usuariosPorPagina").val()
+			$(elemBorrar).remove();
+			funciones.obtenerUsuarios.paginacion(usuariosPorPagina);
+			$("#paginacionLista .pagination li").eq(pagActiva).trigger("click")
+		
+		}
 	}
 }
-
-
 
