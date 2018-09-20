@@ -134,7 +134,7 @@ var funciones = {
             })
         },
         almacenarPaginas: function(totalUsuarios) {
-            usuarios = [];
+            var usuarios = [];
             funciones.obtenerUsuarios.porPagina(totalUsuarios)
                 .then(function(respuesta) {
                     respuesta.data.map(function(usuario) {
